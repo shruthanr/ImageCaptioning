@@ -5,8 +5,9 @@ import torch
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader, Dataset
 from PIL import Image
+import torchvision.transforms as torch_transforms
 
-spacy_eng = spacy.load("en")
+spacy_eng = spacy.load("en_core_web_sm")
 
 
 class Vocabulary:
@@ -52,7 +53,7 @@ class Vocabulary:
     def get_indices(self, text):
         tokenized = self.tokenizer(text)
         return [
-            self.stoi[token] if token in self.stoi else self.stoi["<UNK"] for token in tokenized
+            self.stoi[token] if token in self.stoi else self.stoi["<UNK>"] for token in tokenized
         ]
 
 
@@ -102,3 +103,41 @@ class Collate:
         targets = pad_sequence(targets, batch_first=False, padding_value=self.pad_idx)
 
         return imgs, targets
+
+
+def get_loader(root_folder, captions_file, transforms, batch_size=32, num_workers=8, shuffle=True, pin_memory=True):
+
+    dataset = FlickrDataset(root_folder, captions_file, transforms=transforms)
+
+    pad_idx = dataset.vocab.stoi["<PAD>"]
+
+    loader = DataLoader(
+        dataset=dataset,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        shuffle=shuffle,
+        pin_memory=pin_memory,
+        collate_fn=Collate(pad_idx=pad_idx)
+    )
+
+    return loader
+
+
+def main():
+    root_dir = "../../Datasets/flickr8k/images"
+    captions_file = "../../Datasets/flickr8k/captions.txt"
+    transforms = torch_transforms.Compose(
+        [
+            torch_transforms.Resize((224, 224)),
+            torch_transforms.ToTensor()
+        ]
+    )
+    data_loader = get_loader(root_dir, captions_file, transforms=transforms)
+
+    for idx, (imgs, captions) in enumerate(data_loader):
+        print(imgs.shape)
+        print(captions.shape)
+
+
+if __name__ == "__main__":
+    main()
