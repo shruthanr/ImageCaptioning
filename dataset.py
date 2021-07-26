@@ -120,7 +120,7 @@ def get_loader(root_folder, captions_file, transforms, batch_size=32, num_worker
         collate_fn=Collate(pad_idx=pad_idx)
     )
 
-    return loader
+    return loader, dataset
 
 
 def main():
